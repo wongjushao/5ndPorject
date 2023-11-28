@@ -5,15 +5,29 @@ namespace App\Http\Controllers;
 use App\Models\Job;
 use App\Http\Requests\StoreJobRequest;
 use App\Http\Requests\UpdateJobRequest;
-
+use Illuminate\Http\Request;
 class JobController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('jobs.index',['jobs'=>Job::paginate(10)]);
+        $jobs =Job::query();
+
+        $jobs->when(request('search'),function($query){
+           $query->where(function($query){
+               $query->where('title','like','%'.request('search').'%')
+                   ->orWhere('description','like','%'.request('search').'%');
+           });
+        })->when(request('min_salary'),function($query){
+            $query->where('salary','>=',request('min_salary'));
+        })->when(request('max_salary'),function($query){
+            $query->where('salary','<=',request('max_salary'));
+        })->when(request('experience'),function($query){
+            $query->where('experience',request('experience'));
+        });
+        return view('jobs.index',['jobs'=>$jobs->get()]);
     }
 
     /**
